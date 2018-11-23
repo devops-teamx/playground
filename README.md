@@ -1,4 +1,4 @@
-# Amazon AWS EKS and RDS PostgreSQL with terraform
+# Amazon AWS EKS terraform
 
 Assuming you already have Amazon AWS account we will need additional binaries for AWS CLI, terraform, kubectland aws-iam-authenticator. 
 
