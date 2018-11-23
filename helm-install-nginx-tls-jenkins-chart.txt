@@ -1,0 +1,84 @@
+## Install Helm
+
+cd /tmp
+curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > install-helm.sh
+chmod a+x install-helm.sh
+./install-helm.sh
+
+## Install Tiller
+
+kubectl -n kube-system create serviceaccount tiller
+kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+helm init --service-account tiller
+
+## Install Cert Manager using helm chart
+
+helm install --name cert-manager --namespace kube-system stable/cert-manager
+
+## Create IAM user with Route53 policy 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "route53:GetChange",
+            "Resource": "arn:aws:route53:::change/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "route53:ChangeResourceRecordSets",
+            "Resource": "arn:aws:route53:::hostedzone/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "route53:ListHostedZonesByName",
+            "Resource": "arn:aws:route53:::hostedzone/*"
+        }
+    ]
+}
+
+## create a kubernetes file secret-access-key to store secret key
+
+kubectl create secret generic acme-route53 -n=kube-system --from-file=secret-access-key
+
+## vim letsencrypt-production-dns.yaml
+
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production-dns
+spec:
+  acme:
+    dns01:
+      providers:
+        -
+          name: dns
+          route53:
+            accessKeyID: AKIAIANIQF6QEN4UJFKA
+            region: us-west-2
+            secretAccessKeySecretRef:
+              key: secret-access-key
+              name: acme-route53
+    email: shkbha.666@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-production-dns
+    server: "https:acme-v02.api.letsencrypt.org/directory"
+	
+## If you’ve already installed cert manager and just need to add the above two configurations, you can run this command:
+
+helm upgrade cert-manager \
+stable/cert-manager \
+--namespace kube-system \
+--set ingressShim.defaultIssuerName=letsencrypt-production-dns \
+--set ingressShim.defaultIssuerKind=ClusterIssuer	
+
+#kubectl get clusterissuers
+
+## nginx-ingress with Helm & RBAC
+helm install stable/nginx-ingress --name nginx-ingress --set rbac.create=true
+
+## Route53 create A record with alias for jenkins
+
+## Install Jenkins
+helm install --name cd -f jenkins-values.yaml stable/jenkins
