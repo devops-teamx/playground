@@ -78,7 +78,10 @@ stable/cert-manager \
 ## nginx-ingress with Helm & RBAC
 helm install stable/nginx-ingress --name nginx-ingress --set rbac.create=true
 
-## Route53 create A record with alias for jenkins
+## Route53 create A record with alias ELB created by ingress controller for jenkins
 
 ## Install Jenkins
 helm install --name cd -f jenkins-values.yaml stable/jenkins
+
+# to get password of jenkins from pod
+printf $(kubectl get secret --namespace default cd-jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode);echo
