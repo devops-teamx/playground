@@ -85,3 +85,13 @@ helm install --name cd -f jenkins-values.yaml stable/jenkins
 
 # to get password of jenkins from pod
 printf $(kubectl get secret --namespace default cd-jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode);echo
+
+
+## Install Prometheus Operator for Gitlab CI/CD using kubernetes
+
+helm install --namespace presentation-gitlab-k8s --name gitlab-runner -f gitlab-runner.yaml --wait gitlab/gitlab-runner
+kubectl create clusterrolebinding --user system:serviceaccount:presentation-gitlab-k8s:gitlab-runner-01-gitlab-runner gitlab-runner-4-sa-admin --clusterrole cluster-admin
+helm install --namespace presentation-gitlab-k8s stable/nginx-ingress --name nginx-ingress --set rbac.create=true
+helm install --namespace presentation-gitlab-k8s stable/prometheus-operator --name prometheus-operator --set rbac.create=true
+
+nohup kubectl port-forward -n presentation-gitlab-k8s prometheus-prometheus-operator-prometheus-0 9090 &
