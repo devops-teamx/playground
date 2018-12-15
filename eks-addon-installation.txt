@@ -1,0 +1,59 @@
+
+## Extra Configuration required for eks setup
+
+export AWS_PROFILE=terraform
+
+#Add Output of "terraform output kubeconfig" to ~/.kube/config-devel
+terraform output kubeconfig > ~/.kube/config-${ENV}
+export KUBECONFIG=$KUBECONFIG:~/.kube/config-${ENV}
+
+#Allow EKS to Add Nodes by Running configmap
+terraform output config_map_aws_auth > yaml/config_map_aws_auth.yaml
+kubectl apply -f yaml/config_map_aws_auth.yaml
+
+#Configuring Storgae Class for EKS 
+kubectl apply -f yaml/storage-class.yaml
+
+#Patch Storage Class
+kubectl patch storageclass gp2 -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+#Install Kubernetes Dashboard
+kubectl apply -f \
+https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+
+#Create an eks-admin Service Account and Cluster Role Binding
+## Apply the Service Account to Your Cluster
+kubectl apply -f yaml/eks-admin-service-account.yaml
+
+## Apply the Cluster Role Binding to Your Cluster
+kubectl apply -f yaml/eks-admin-cluster-role-binding.yaml
+
+#Getting Dashboard Token Value
+kubectl -n kube-system describe secret \
+$(kubectl -n kube-system get secret | grep eks-admin | awk '{print $1}') >> token_file_created_run_time.txt
+#Install Heapster
+kubectl apply -f \
+https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/heapster.yaml
+
+#Adding RBAC AuthZ for heapster
+kubectl apply -f \
+https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/rbac/heapster-rbac.yaml
+
+#Install Metrics Server on EKS Cluster
+
+git clone https://github.com/kubernetes-incubator/metrics-server.git
+cd metrics-server
+# If you are running Kubernetes version 1.8 or higher
+kubectl create -f deploy/1.8+/
+# If the version is 1.7, then
+kubectl create -f deploy/1.7/
+
+
+
+#Install InfluxDB
+kubectl apply -f \
+https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
+
+
+
+
