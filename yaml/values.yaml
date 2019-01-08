@@ -1,0 +1,79 @@
+#global settings
+global:
+  logLevel: info
+  splunk:
+    hec:
+      protocol: https
+      insecureSSL: false
+      host: https://prd-p-44vw9ns2z8ld.cloud.splunk.com
+      token: 0adf257e-6e77-476e-9ba3-7f8027a0864c
+
+#local config for logging chart
+splunk-kubernetes-logging:
+  journalLogPath: /run/log/journal
+  splunk:
+    hec:
+      indexName: eks_logs
+
+#local config for objects chart      
+splunk-kubernetes-objects:
+  rbac:
+    create: true
+  serviceAccount:
+    create: true
+    name: splunk-kubernetes-objects
+  kubernetes:
+    insecureSSL: true
+  objects:
+    core:
+      v1:
+        - name: pods
+          #interval: 30
+        - name: namespaces
+          #interval: 30
+        - name: nodes
+          #interval: 60
+        - name: services
+          #interval: 30
+        - name: config_maps
+          #interval: 30
+        - name: secrets
+          #interval: 30
+        #- name: volumes
+          #interval: 30
+        - name: persistent_volumes
+          #interval: 30
+        - name: service_accounts
+          #interval: 30
+        - name: persistent_volume_claims
+          #interval: 30
+        - name: resource_quotas
+          #interval: 30
+        - name: component_statuses
+          #interval: 30
+        - name: events
+          mode: watch
+    apps:
+      v1:
+        - name: deployments
+          #interval: 30
+        - name: daemon_sets
+          #interval: 30
+        - name: replica_sets
+          #interval: 30
+        - name: stateful_sets
+          #interval: 30
+  splunk:
+    hec:
+      indexName: eks_meta   
+
+#local config for metrics chart
+splunk-kubernetes-metrics:
+  rbac:
+    create: true
+  serviceAccount:
+    create: true
+    name: splunk-kubernetes-metrics
+  splunk:
+    hec:
+      indexName: eks_metrics
