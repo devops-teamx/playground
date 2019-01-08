@@ -1,29 +1,20 @@
 data "aws_ami" "eks-worker" {
   filter {
     name   = "name"
-    values = ["amazon-eks-node-1.11-*"]
+    values = ["amazon-eks-node-v*"]
   }
   most_recent = true
 }
 
 data "aws_region" "current" {}
 
-data "template_file" "user_data" {
-  template = "${file("${path.module}/userdata.tpl")}"
 
-  vars {
-    eks_certificate_authority = "${var.eks_certificate_authority}"
-    eks_endpoint              = "${var.eks_endpoint}"
-    eks_cluster_name          = "${var.eks_cluster_name}"
-		workspace 								= "${terraform.workspace}"
-    aws_region_current_name 	= "${data.aws_region.current.name}"
-  }
-}
-
-resource "null_resource" "export_rendered_template" {
-	provisioner "local-exec" {
-	command = "cat > /data_output.sh <<EOL\n${data.template_file.user_data.rendered}\nEOL"
-	}
+locals {
+  demo-node-userdata = <<USERDATA
+#!/bin/bash
+set -o xtrace
+/etc/eks/bootstrap.sh --apiserver-endpoint '${var.eks_endpoint}' --b64-cluster-ca '${var.eks_certificate_authority}' '${var.eks_cluster_name}}'
+USERDATA
 }
 
 resource "aws_launch_configuration" "terra" {
@@ -34,7 +25,7 @@ resource "aws_launch_configuration" "terra" {
   name_prefix                 = "terraform-${terraform.workspace}-eks"
   key_name                    = "test_access"
   security_groups             = ["${var.security_group_node}"]
-	user_data 									= "${data.template_file.user_data.rendered}"
+  user_data_base64            = "${base64encode(local.demo-node-userdata)}"
   lifecycle {
     create_before_destroy = true
   }
